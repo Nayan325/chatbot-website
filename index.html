@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartChatBot – Final Version</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.min.js"></script>
+<style>
+    body { font-family: Arial; max-width: 600px; margin: 50px auto; padding: 20px; border: 2px solid #ccc; border-radius: 10px; background: #fdfdfd;}
+    #chatbox { height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background: #f9f9f9;}
+    .bot { color: blue; margin: 5px 0; }
+    .user { color: green; margin: 5px 0; }
+    input[type=text] { width: 75%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+    input[type=button] { padding: 10px 20px; border-radius: 5px; border: none; background: #007bff; color: white; cursor: pointer;}
+    input[type=button]:hover { background: #0056b3; }
+</style>
+</head>
+<body>
+<h2>SmartChatBot – Final Version</h2>
+<div id="chatbox"></div>
+<input type="text" id="userInput" placeholder="Type your message..." />
+<input type="button" value="Send" onclick="chat()" />
+
+<script>
+const chatbox = document.getElementById("chatbox");
+
+const indiaData = {
+    states: { "andhra pradesh":"Amaravati", "arunachal pradesh":"Itanagar","assam":"Dispur","bihar":"Patna","chhattisgarh":"Raipur","goa":"Panaji","gujarat":"Gandhinagar","haryana":"Chandigarh","himachal pradesh":"Shimla","jharkhand":"Ranchi","karnataka":"Bengaluru","kerala":"Thiruvananthapuram","madhya pradesh":"Bhopal","maharashtra":"Mumbai","manipur":"Imphal","meghalaya":"Shillong","mizoram":"Aizawl","nagaland":"Kohima","odisha":"Bhubaneswar","punjab":"Chandigarh","rajasthan":"Jaipur","sikkim":"Gangtok","tamil nadu":"Chennai","telangana":"Hyderabad","tripura":"Agartala","uttar pradesh":"Lucknow","uttarakhand":"Dehradun","west bengal":"Kolkata"},
+    unionTerritories: { "andaman and nicobar islands":"Port Blair","chandigarh":"Chandigarh","dadra and nagar haveli and daman and diu":"Daman","delhi":"New Delhi","lakshadweep":"Kavaratti","puducherry":"Puducherry","ladakh":"Leh","jammu and kashmir":"Srinagar (summer), Jammu (winter)" },
+    generalInfo: "India is a diverse country in South Asia with a rich culture, history, and vibrant traditions. It is known for its festivals, languages, cuisine, and spiritual heritage."
+};
+
+let userData = JSON.parse(localStorage.getItem("userData")) || {name:null, location:null};
+let userKnowledge = JSON.parse(localStorage.getItem("userKnowledge")) || {};
+let conversationState = { waitingFor: null, lastQuestion: null };
+
+const topicKeywords = {
+    india: ["india","country","nation","culture","history","population"],
+    math: ["math","calculate","problem","equation","solve"],
+    jokes: ["joke","funny","laugh"],
+    motivation: ["motivation","encourage","inspire"],
+    states: ["state","states","capital","governor"],
+    location: ["where","live","location"]
+};
+
+const greetings = ["hi","hello","hey","greetings"];
+
+function chat() {
+    const input = document.getElementById("userInput");
+    const userText = input.value.trim();
+    if(!userText) return;
+    appendMessage("You: "+userText,"user");
+    const botReply = getResponse(userText);
+    setTimeout(()=>appendMessage("Bot: "+botReply,"bot"),500);
+    input.value="";
+    chatbox.scrollTop = chatbox.scrollHeight;
+}
+
+function appendMessage(message,className){
+    const msg = document.createElement("div");
+    msg.className = className;
+    msg.textContent = message;
+    chatbox.appendChild(msg);
+}
+
+function saveUserData(){ localStorage.setItem("userData", JSON.stringify(userData)); }
+function saveUserKnowledge(){ localStorage.setItem("userKnowledge", JSON.stringify(userKnowledge)); }
+
+function getResponse(input){
+    input = input.toLowerCase();
+
+    // Handle learning unknown answers
+    if(conversationState.waitingFor === "knowledge"){
+        const answer = input.trim();
+        userKnowledge[conversationState.lastQuestion] = answer;
+        saveUserKnowledge();
+        conversationState.waitingFor = null;
+        conversationState.lastQuestion = null;
+        return "Thanks! I've learned something new.";
+    }
+    // Handle updating knowledge
+if(conversationState.waitingFor === "update"){
+    const answer = input.trim();
+    const topic = conversationState.lastQuestion;
+    userKnowledge[topic] = answer;
+    saveUserKnowledge();
+    conversationState.waitingFor = null;
+    conversationState.lastQuestion = null;
+    return `Got it! I've updated the information about "${topic}".`;
+}
+// Handle user correcting previous info
+if(conversationState.waitingFor === "correction"){
+    const correctAnswer = input.trim();
+    const topic = conversationState.lastQuestion;
+    userKnowledge[topic] = correctAnswer;
+    saveUserKnowledge();
+    conversationState.waitingFor = null;
+    conversationState.lastQuestion = null;
+    return `Thanks! I've corrected the information about "${topic}".`;
+}
+// If user says something is wrong or incorrect
+if(input.includes("wrong") || input.includes("incorrect")){
+    conversationState.waitingFor = "correction";
+    conversationState.lastQuestion = conversationState.lastQuestion || input;
+    return "Oh! Can you please tell me the correct information?";
+}
+
+t 
+// ✅ Handle date/time request
+if(input.includes("time") || input.includes("date")){
+    const now = new Date();
+    return `Current date and time is: ${now.toLocaleString()}`;
+}
+
+
+// Check if user wants to update info
+if(input.startsWith("update info about") || input.startsWith("teach you")){
+    let topic = input.replace("update info about", "").replace("teach you", "").trim();
+    conversationState.waitingFor = "update";
+    conversationState.lastQuestion = topic;
+    return `Sure! Please tell me the new information about "${topic}".`;
+}
+
+
+    // Waiting for name/location
+    if(conversationState.waitingFor){
+        if(conversationState.waitingFor==="name"){
+            userData.name = capitalize(input.trim());
+            saveUserData();
+            conversationState.waitingFor = null;
+            return `Nice to meet you, ${userData.name}! How can I assist you today?`;
+        }
+        if(conversationState.waitingFor==="location"){
+            userData.location = capitalize(input.trim());
+            saveUserData();
+            conversationState.waitingFor = null;
+            return `Great! I'll remember you live in ${userData.location}. How can I help you now?`;
+        }
+    }
+
+    // Greetings
+    if(greetings.some(word=>input.includes(word))){
+        if(userData.name) return `Hello ${userData.name}! How can I help you today?`;
+        conversationState.waitingFor="name";
+        return "Hello! What's your name?";
+    }
+
+    // What can you do
+    if(input.includes("what can you do") || input.includes("what are your features") || input.includes("help me")){
+        return "I can chat with you, solve math problems, tell jokes, provide information about India and its states, remember your name and location, and more! Just ask me.";
+    }
+
+    // Learn name/location
+    if(input.includes("my name is")){ userData.name = capitalize(input.split("my name is")[1].trim()); saveUserData(); return `Nice to meet you, ${userData.name}!`; }
+    if(input.includes("i live in")){ userData.location = capitalize(input.split("i live in")[1].trim()); saveUserData(); return `Got it! I'll remember that you live in ${userData.location}.`; }
+
+    // Direct questions
+    if(input.includes("what is my name")) return userData.name ? `Your name is ${userData.name}.` : (conversationState.waitingFor="name","I don't know your name yet. What's your name?");
+    if(input.includes("where do i live")) return userData.location ? `You live in ${userData.location}.` : (conversationState.waitingFor="location","I don't know where you live yet. Where do you live?");
+
+    // Topic recognition
+    if(matchTopic(input,"india")) return `India is a fascinating country! ${indiaData.generalInfo}`;
+    if(matchTopic(input,"math")) return solveMath(input);
+    if(matchTopic(input,"jokes")) return "Why did the math book look sad? Because it had too many problems!";
+    if(matchTopic(input,"motivation")) return "Keep going! Every small step helps you grow stronger.";
+    if(matchTopic(input,"states")) return "India has 28 states and 8 union territories. You can ask about any state or capital!";
+    if(matchTopic(input,"location")) return "You can tell me where you live by saying 'I live in...'";
+
+    // States and UTs
+    for(let state in indiaData.states) if(input.includes(state)) return `The capital of ${capitalize(state)} is ${indiaData.states[state]}.`;
+    for(let ut in indiaData.unionTerritories) if(input.includes(ut)) return `The capital of ${capitalize(ut)} is ${indiaData.unionTerritories[ut]}.`;
+
+    // Check if already learned
+    if(userKnowledge[input]) return userKnowledge[input];
+
+    // Fallback: ask user to teach
+    conversationState.waitingFor="knowledge";
+    conversationState.lastQuestion = input;
+    return "I don't know about that. Can you tell me?";
+}
+
+function matchTopic(input,topic){ if(!topicKeywords[topic]) return false; return topicKeywords[topic].some(word=>input.includes(word)); }
+function capitalize(text){ return text.split(" ").map(word=>word.charAt(0).toUpperCase()+word.slice(1)).join(" "); }
+
+function solveMath(input){
+    try{
+        let expression = input.match(/[-+*/^().\d\s]+/g);
+        if(!expression) return "Please write a math expression like '5 + 3 * 2'.";
+        expression = expression.join("");
+        return "The answer is: "+math.evaluate(expression);
+    }catch{return "I couldn't solve that. Please check your expression.";}
+}
+</script>
+</body>
+</html>
